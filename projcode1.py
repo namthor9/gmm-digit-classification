@@ -1,0 +1,234 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 31 10:14:58 2022
+
+@author: MaxRo
+"""
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import sklearn
+import tslearn
+
+from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
+
+from tslearn.clustering import TimeSeriesKMeans
+
+train_file = "C:/Users\MaxRo\OneDrive\Desktop\senioryear\ece480\project\Train_Arabic_Digit.txt"
+test_file = "C:/Users\MaxRo\OneDrive\Desktop\senioryear\ece480\project\Test_Arabic_Digit.txt"
+
+
+#train_data = pd.read_csv(train_file, sep=" ",header=None)
+recalc= True
+if(recalc):
+    data = []
+    labels = []
+    newdata= []
+    for i in range(13):
+        newdata.append([])
+    with open(train_file) as f:
+        lines = f.readlines()
+        j=1
+        label_label = 0
+        for line in lines:
+                if(line == '            \n'):
+                    if(newdata[0] != []):
+                        data.append(newdata)
+                        newdata= []
+                        for i in range(13):
+                            newdata.append([])
+                        labels.append(label_label)
+                        print(label_label)
+                        if(j % 660 == 0):
+                            label_label += 1
+                    
+                        j+=1
+                        #print(j) 
+                else:
+                    #newdata= [[]] * 13
+                    vals = line.split(" ")
+                    for i in range(len(vals)):
+                        v = float(vals[i])
+                        newdata[i].append(v)
+                    
+test_data = []
+test_labels = []
+newdata= []
+for i in range(13):
+    newdata.append([])
+with open(test_file) as f:
+    lines = f.readlines()
+    j=1
+    label_label = 0
+    for line in lines:
+            vals = line.split(" ")
+            #if(line == '            \n' or (line == '             ')):
+            if(vals[0] == ''):
+                if(newdata[0] != []):
+                    test_data.append(newdata)
+                    newdata= []
+                    for i in range(13):
+                        newdata.append([])
+                    test_labels.append(label_label)
+                    print(label_label)
+                    if(j % 220 == 0):
+                        label_label += 1
+                
+                    j+=1
+                    #print(j) 
+            else:
+                #newdata= [[]] * 13
+                
+                for i in range(len(vals)):
+                        v = float(vals[i])
+                        newdata[i].append(v)
+plt.figure(1)
+k=1
+
+#simple time series plot
+# for i in range(13):
+#     mcc = data[660][i]
+#     if(i in [0,1,2,3,4,5,6,7,8,9,10,11,12]):
+#         plt.plot(mcc,label=k)
+#         k+=1
+# plt.legend()
+# plt.xlabel("Sample Number",fontsize=13)
+# plt.ylabel("MFCC Amplitude",fontsize=13)
+# plt.title("MFCCs For Digit 1, Observation 1",fontsize=15)
+
+#plot average mcc1,mcc2 for each digit over time across all samples 
+# for digit in range(0,10):
+#     plt.figure(digit)
+#     mcc1_avg = []
+#     mcc2_avg = []
+#     mcc3_avg = []
+#     mcc4_avg = []
+#     count = 0
+#     start = digit * 660
+#     end = (digit+1) * 660 -1
+#     for i in range(30):
+#             mcc1_avg.append(0)
+#             mcc2_avg.append(0)
+#             mcc3_avg.append(0)
+#             mcc4_avg.append(0)
+#     for i in range(start,end):
+#             mcc1 = data[i][0]
+#             mcc2 = data[i][1]
+#             mcc3 = data[i][2]
+#             mcc4 = data[i][3]
+#             if(len(mcc1)>=30 and len(mcc2) >=30 and len(mcc3) >=30 and len(mcc4) >=30):
+#                 count +=1
+#                 for j in range(0,30):
+#                     mcc1_avg[j] += mcc1[j]
+#                     mcc2_avg[j] += mcc2[j]
+#                     mcc3_avg[j] += mcc3[j]
+#                     mcc4_avg[j] += mcc4[j]
+#             #plt.plot(mcc1,color='b')
+#             #plt.plot(mcc2,color='g')
+#     for j in range(0,30):
+#         mcc1_avg[j] /= count
+#         mcc2_avg[j] /= count
+#         mcc3_avg[j] /= count
+#         mcc4_avg[j] /= count
+    
+#     plt.plot(mcc1_avg,color='y',label="MCC1 Average")
+#     plt.plot(mcc2_avg,color='k',label="MCC2 Average")
+#     plt.plot(mcc3_avg,color='b',label="MCC3 Average")
+#     plt.plot(mcc4_avg,color='g',label="MCC4 Average")
+#     plt.legend()
+#     plt.title("Digit: "+str(digit))
+#     plt.xlabel("Sample Number")
+#     plt.ylabel("MCC Amplitude")
+
+#training features
+#run through data, chop it to ~30 samples, create 3 time averages for mcc 1 and 2, that is feature vector
+# features = []
+# ts_features = []
+# samples = 30
+# spacing = 10
+# n_blocks = samples//spacing
+# for i in range(len(data)):
+
+#     mcc1 = data[i][0]
+#     mcc2 = data[i][1]
+#     mcc3 = data[i][2]
+#     mcc4 = data[i][3]
+    
+#     if(len(mcc1)>=30 and len(mcc2) >=30):
+#         newfeatures = []
+#         # ts_newfeatures = []
+#         # ts_newfeatures.append(mcc1[0:29])
+#         # ts_newfeatures.append(mcc2[0:29])
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc1[start:end])/len(mcc1[start:end]))
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc2[start:end])/len(mcc2[start:end]))
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc3[start:end])/len(mcc3[start:end]))
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc4[start:end])/len(mcc4[start:end]))
+#         features.append(newfeatures)
+#         #ts_features.append(np.asarray(ts_newfeatures))
+   
+  
+# #testing features
+# test_features = []
+# test_labels_cut = []
+
+# for i in range(len(test_data)):
+
+#     mcc1 = test_data[i][0]
+#     mcc2 = test_data[i][1]
+#     mcc3 = test_data[i][2]
+#     mcc4 = test_data[i][3]
+    
+#     if(len(mcc1)>=30 and len(mcc2) >=30):
+#         newfeatures = []
+#         # ts_newfeatures = []
+#         # ts_newfeatures.append(mcc1[0:29])
+#         # ts_newfeatures.append(mcc2[0:29])
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc1[start:end])/len(mcc1[start:end]))
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc2[start:end])/len(mcc2[start:end]))
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc3[start:end])/len(mcc3[start:end]))
+#         for j in range(n_blocks):
+#             start = j*spacing
+#             end = (j+1) * spacing - 1
+#             newfeatures.append(sum(mcc4[start:end])/len(mcc4[start:end]))
+#         test_features.append(newfeatures)
+#         test_labels_cut.append(test_labels[i])
+
+
+     
+# kmeans = KMeans(n_clusters=10).fit(features)    
+# out_labels = kmeans.labels_    
+
+
+# gmm = GaussianMixture(n_components=10).fit(features)
+# gmm_pred = gmm.predict(test_features)
+
+# correct = 0
+# for i in range(len(test_labels_cut)):
+#     if(test_labels_cut[i] == gmm_pred[i]):
+#         correct+=1
+# print("Accuracy: {}%".format(correct/len(test_labels_cut)*100))
+        
+# ts_kmeans = TimeSeriesKMeans(n_clusters=10,metric='dtw',max_iter=10).fit(ts_features)
+# ts_out_labels = ts_kmeans.labels_
